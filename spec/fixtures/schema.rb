@@ -12,37 +12,27 @@
 # It's strongly recommended to check this file into your version control system.
 
 ActiveRecord::Schema.define(:version => 20120318055757) do
-=begin
-  create_table "chapters", :force => true do |t|
-    t.string "title"
-    t.text "description"
-    t.integer "start_time"
-    t.integer "end_time"
-    t.integer "video_id"
-    t.integer "user_id"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-    t.string "cuepoint_key"
-  end
-=end
 
   create_table "flexi_model_collections", :force => true do |t|
     t.string 'name'
     t.string 'singular_label'
     t.string 'plural_label'
     t.string 'namespace'
+    t.integer 'partition_id'
 
     t.datetime "created_at"
     t.datetime "updated_at"
   end
 
   add_index "flexi_model_collections", [:namespace, :name]
+  add_index "flexi_model_collections", [:namespace, :name, :partition_id], name: 'index_ns_name_pi'
 
   create_table 'flexi_model_fields', :force => true do |t|
     t.string 'name'
     t.string 'singular_label'
     t.string 'plural_label'
     t.string 'namespace'
+    t.integer 'partition_id'
 
     t.string 'field_type'
     t.text 'default_value'
@@ -50,6 +40,7 @@ ActiveRecord::Schema.define(:version => 20120318055757) do
 
   add_index 'flexi_model_fields', [:namespace, :name]
   add_index 'flexi_model_fields', [:namespace, :name, :field_type]
+  add_index 'flexi_model_fields', [:namespace, :name, :field_type, :partition_id], name: 'index_ns_name_ft_pi'
 
   create_table 'flexi_model_collections_fields', :force => true do |t|
     t.integer 'collection_id'

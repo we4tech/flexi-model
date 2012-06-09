@@ -1,7 +1,69 @@
 require 'spec_helper'
 
-describe FlexiModel do
+describe FlexiModel::Fields do
   context 'New Flex Model' do
+
+    describe '.set_flexi_namespace' do
+      class MyModel
+        include FlexiModel
+      end
+
+      context 'without namespace' do
+        it 'should return exception' do
+          lambda {
+            MyModel.flexi_field :name, 'string'
+          }.should raise_error
+        end
+      end
+
+      context 'with namespace' do
+        it 'should set namespace' do
+          MyModel.get_flexi_namespace.should == 'mymodel'
+        end
+
+        it 'should store namespace in class scope' do
+          class A
+            include FlexiModel
+          end
+
+          A.get_flexi_namespace.should == 'a'
+
+          class B
+            include FlexiModel
+          end
+
+          A.get_flexi_namespace.should == 'a'
+          B.get_flexi_namespace.should == 'b'
+        end
+      end
+
+      it 'should have partition id 0' do
+        MyModel.flexi_partition_id.should == 0
+      end
+    end
+
+    describe '.set_flexi_partition_id' do
+      class PModelA
+        include FlexiModel
+
+        set_flexi_partition_id 20
+        flexi_field :name, String
+
+      end
+
+      class PModelB
+        include FlexiModel
+
+        set_flexi_partition_id 30
+        flexi_field :name, String
+      end
+
+      it 'should set partition id 20' do
+        PModelA.new.get_flexi_collection.partition_id.should == 20
+        PModelB.new.get_flexi_collection.partition_id.should == 30
+      end
+    end
+
     describe '.flexi_field' do
       before do
         class MyModel;
@@ -15,8 +77,19 @@ describe FlexiModel do
 
       it 'should define new field' do
         lambda {
-          MyModel.flexi_field :name, String, 'untitled'
+          MyModel.flexi_field :first_name, String, :default => 'untitled'
         }.should change(MyModel.flexi_fields, :count).by(1)
+      end
+
+      it 'should not define duplicate field' do
+        MyModel.flexi_fields = []
+        MyModel.flexi_fields.count.should == 0
+
+        MyModel.flexi_field :name, String, :default => 'untitled'
+        MyModel.flexi_fields.count.should == 1
+
+        MyModel.flexi_field :name, String, :default => 'untitled'
+        MyModel.flexi_fields.count.should == 1
       end
     end
 
@@ -75,6 +148,25 @@ describe FlexiModel do
       Model1.flexi_fields.count.should == 3
     end
 
+    it 'should set attributes through constructor' do
+      lambda {
+        Model1.new(name: 'hasan', email: 'khan@hasan.com', phone: "+32323233")
+      }.should_not raise_error
+    end
+
+    it 'should expose getter for each flexi field' do
+      inst = Model1.new
+      [:name, :email, :phone].each do |f|
+        inst.respond_to?(f).should be
+      end
+    end
+
+    it 'should expose setter for each flexi field' do
+      inst = Model1.new
+      [:name, :email, :phone].each do |f|
+        inst.respond_to?(:"#{f}=").should be
+      end
+    end
 
   end
 end

@@ -1,5 +1,5 @@
 module FlexiModel
-  module Queryable
+  module Scope
     extend ActiveSupport::Concern
   end
 end

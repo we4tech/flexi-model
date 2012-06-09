@@ -17,7 +17,7 @@ end
 begin
   require "jeweler"
   Jeweler::Tasks.new do |gem|
-    gem.name    = "flexi-model"
+    gem.name    = "flexi_model"
     gem.summary = "Build flexible database model with dynamic fields (right now based on ActiveRecord soon it will work with mongoid too)"
     gem.homepage = 'https://github.com/we4tech/flexi-model/'
     gem.description = 'Flexible Model'

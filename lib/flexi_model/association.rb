@@ -1,5 +1,5 @@
 module FlexiModel
-  module Relation
+  module Association
     extend ActiveSupport::Concern
   end
 end

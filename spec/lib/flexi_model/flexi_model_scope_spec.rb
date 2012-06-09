@@ -1,7 +1,7 @@
 require 'spec_helper'
 
-describe FlexiModel::Queryable do
-  class Model
+describe FlexiModel::Scope do
+  class SModel
     include FlexiModel
 
     flexi_field :name, String
@@ -9,11 +9,7 @@ describe FlexiModel::Queryable do
 
   end
 
-  describe '#find'
-  describe '#where'
-  describe '#all'
-  describe '#first'
-  describe '#last'
-  describe '#where.order'
+  describe '#scope'
+  describe '#define_scope'
 
 end
