@@ -90,6 +90,7 @@ module FlexiModel
       _id.present?
     end
 
+    # Update stored attributes by give hash
     def update_attributes(hash)
       _record = _get_record
 
@@ -112,9 +113,13 @@ module FlexiModel
 
         _value.update_attribute _value.field.value_column, self.send(_value.field.name.to_sym)
       end
+
+      true
     end
 
-    def update_attribute;
+    # Update single attribute by key and value
+    def update_attribute(key, value)
+      self.update_attributes(key => value)
     end
 
     def destroy

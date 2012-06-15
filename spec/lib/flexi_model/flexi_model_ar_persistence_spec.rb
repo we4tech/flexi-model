@@ -208,7 +208,27 @@ describe FlexiModel::ArPersistence do
   end
 
   describe '#update_attribute' do
-    it 'should update with key and value'
+    class HolaUser
+      include FlexiModel
+
+      flexi_field :name, String
+      flexi_field :email, String
+    end
+
+    let!(:user) { HolaUser.create(name: 'hasan', email: 'k@k.com') }
+
+
+    it 'should not throw error' do
+      lambda {
+        user.update_attribute :name, 'mia'
+      }.should_not raise_error
+    end
+
+    it 'should update with a single key and value' do
+      user.update_attribute :name, 'vulu'
+      _u = HolaUser.find(user._id)
+      _u.name.should == 'vulu'
+    end
   end
 
   describe '#destroy' do
