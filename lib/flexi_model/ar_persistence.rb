@@ -90,7 +90,28 @@ module FlexiModel
       _id.present?
     end
 
-    def update_attributes;
+    def update_attributes(hash)
+      _record = _get_record
+
+      _fields_value_map = Hash[
+          get_flexi_fields_map.map { |_key, _field|
+            [_field, hash[_key]] if hash.keys.include?(_key)
+          }.compact
+      ]
+
+      # update host object
+      #hash.each { |k, v| self.send(:"#{k}=", v) }
+
+      # Retrieve existing mapping
+      _values = _record.values.
+          map { |v| v if _fields_value_map.include?(v.field) }.compact
+
+      _values.each do |_value|
+        _new_value = _fields_value_map[_value.field]
+        self.send(:"#{_value.field.name.to_s}=", _new_value)
+
+        _value.update_attribute _value.field.value_column, self.send(_value.field.name.to_sym)
+      end
     end
 
     def update_attribute;
@@ -113,13 +134,13 @@ module FlexiModel
 
     # Return flexi fields in name and field object map
     def get_flexi_fields_map
-      key_value_array = get_flexi_collection.fields
-        .map { |_field| [_field.name.to_sym, _field] }
+      key_value_array = get_flexi_collection.fields.
+          map { |_field| [_field.name.to_sym, _field] }
 
       self._flexi_fields_map ||= Hash[key_value_array]
     end
 
-  private
+    private
     def create_or_update
       _id.nil? ? create : update
     end

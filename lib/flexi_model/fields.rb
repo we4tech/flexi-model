@@ -53,8 +53,9 @@ module FlexiModel
         default = options[:default]
         singular = options[:singular] || name.to_s.singularize
         plural = options[:plural] || name.to_s.pluralize
+        _type = type.is_a?(Symbol) || type.is_a?(String) ? type : type.name
 
-        field = FlexiField.new(name, type.name.to_s.downcase, default)
+        field = FlexiField.new(name, _type.to_s.downcase, default)
         field.singular = singular
         field.plural = plural
 
@@ -92,8 +93,16 @@ module FlexiModel
               val
             end
           end
-
         RUBY
+
+        # Define ? method if boolean field
+        if field.type == 'boolean'
+          self.class_eval <<-RUBY
+            def #{field.name.to_s}?
+              self.#{field.name.to_s}
+            end
+          RUBY
+        end
       end
     end
 

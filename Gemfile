@@ -1,12 +1,14 @@
 # A sample Gemfile
 source "https://rubygems.org"
 
+gem 'active_support'
 gem 'jeweler'
 
 group :test do
   # Test environment dependencies
   gem 'activerecord'
   gem 'activemodel'
+
   gem 'sqlite3'
 
   # Testing related gems

@@ -180,7 +180,31 @@ describe FlexiModel::ArPersistence do
 
     let!(:user) { User.create(name: 'hasan', email: 'k@k.com') }
 
-    it 'should update with hash map'
+    it 'should update without error' do
+      lambda {
+        user.update_attributes name: 'khan'
+      }.should_not raise_error
+    end
+
+    it 'should update name attribute' do
+      user.update_attributes name: 'khan'
+      _u = User.find(user._id)
+      _u.name.should == 'khan'
+    end
+
+    it 'should update email attribute and keep same name' do
+      user.update_attributes email: 'khan@def.com'
+      _u = User.find(user._id)
+      _u.name.should == 'hasan'
+      _u.email.should == 'khan@def.com'
+    end
+
+    it 'should update both' do
+      user.update_attributes email: 'khan@def.com3', name: 'hola'
+      _u = User.find(user._id)
+      _u.name.should == 'hola'
+      _u.email.should == 'khan@def.com3'
+    end
   end
 
   describe '#update_attribute' do

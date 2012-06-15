@@ -25,6 +25,8 @@ module FlexiModel
     include FlexiModel::ArModels
     include FlexiModel::ArPersistence
     include FlexiModel::ArQueryable
+  else
+    raise "No Active Record Found"
   end
 
   include FlexiModel::Association

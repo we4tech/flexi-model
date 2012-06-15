@@ -1,13 +1,14 @@
 module FlexiModel
   module ArModels
     class Field < ActiveRecord::Base
-      self.table_name  = 'flexi_model_fields'
-      TYPES            = [:integer, :boolean, :multiple, :decimal, :string, :text,
-                          :datetime, :date, :time, :email, :phone, :address, :location]
-      COLUMNS_MAP = {
+      self.table_name = 'flexi_model_fields'
+      TYPES           = [:integer, :boolean, :multiple, :decimal, :float, :string, :text,
+                         :datetime, :date, :time, :email, :phone, :address, :location]
+      COLUMNS_MAP     = {
           boolean:  :bool_value,
           integer:  :int_value,
           decimal:  :dec_value,
+          float:    :dec_value,
           string:   :str_value,
           email:    :str_value,
           phone:    :str_value,

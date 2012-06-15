@@ -8,14 +8,6 @@ describe FlexiModel::Fields do
         include FlexiModel
       end
 
-      context 'without namespace' do
-        it 'should return exception' do
-          lambda {
-            MyModel.flexi_field :name, 'string'
-          }.should raise_error
-        end
-      end
-
       context 'with namespace' do
         it 'should set namespace' do
           MyModel.get_flexi_namespace.should == 'mymodel'

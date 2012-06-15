@@ -42,7 +42,7 @@ ActiveRecord::Schema.define(:version => 20120318055757) do
   add_index 'flexi_model_fields', [:namespace, :name, :field_type]
   add_index 'flexi_model_fields', [:namespace, :name, :field_type, :partition_id], name: 'index_ns_name_ft_pi'
 
-  create_table 'flexi_model_collections_fields', :force => true do |t|
+  create_table 'flexi_model_collections_fields', :force => true, :id => false do |t|
     t.integer 'collection_id'
     t.integer 'field_id'
   end
