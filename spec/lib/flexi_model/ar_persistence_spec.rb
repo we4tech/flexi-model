@@ -105,6 +105,19 @@ describe FlexiModel::ArPersistence do
     end
   end
 
+  describe '#new' do
+    class HolaModel
+      include FlexiModel
+      flexi_field :nam, String
+    end
+
+    it 'should create collection' do
+      lambda {
+        HolaModel.new
+      }.should change(FlexiModel::ArModels::Collection, :count).by(1)
+    end
+  end
+
   describe '#save' do
     it 'should have #save method' do
       Model.new().respond_to?(:save).should be

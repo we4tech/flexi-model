@@ -81,7 +81,16 @@ module FlexiModel
 
         inst
       end
+    end
 
+    def initialize(*)
+      super
+      _find_or_update_or_build_collection!
+    end
+
+    # Ensure object with same _id returns true on equality check
+    def ==(another_instance)
+      self._id && self._id == another_instance._id
     end
 
     # Store record in persistent storage

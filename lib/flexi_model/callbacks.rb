@@ -7,8 +7,12 @@ module FlexiModel
       include ActiveModel::Validations::Callbacks
 
       # Set callbacks
-      define_model_callbacks :save, :create, :update, :destroy
+      define_model_callbacks :save, :create, :update, :destroy, :initialize
     end
+  end
+
+  def initialize(*)
+    run_callbacks(:initialize) { super }
   end
 
   def save
