@@ -27,6 +27,14 @@ module FlexiModel
     run_callbacks(:update) { super }
   end
 
+  def update_attributes(*)
+    run_callbacks(:update) { super }
+  end
+
+  def update_attribute(*)
+    run_callbacks(:update) { super }
+  end
+
   def destroy
     run_callbacks(:destroy) { super }
   end

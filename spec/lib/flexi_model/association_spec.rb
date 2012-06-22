@@ -81,7 +81,7 @@ describe FlexiModel::Association do
         let(:review) { Bt::Review.create() }
         subject { review }
 
-        its('errors.length') { should == 2 }
+        its('errors.count') { should == 2 }
 
         it 'should have error on :comment' do
           subject.errors[:comment].should be
@@ -136,6 +136,130 @@ describe FlexiModel::Association do
   end
 
   describe '#has_one'
-  describe '#has_and_belongs_to_many'
+
+  describe '#has_and_belongs_to_many' do
+    module Hbb
+      class Product
+        include FlexiModel
+        _ff :name, :string
+
+        has_and_belongs_to_many :categories
+      end
+
+      class Category
+        include FlexiModel
+        _ff :name, :string
+
+        has_and_belongs_to_many :products
+      end
+    end
+
+    let(:cat1) { Hbb::Category.create(name: "Food Menu") }
+    let(:cat2) { Hbb::Category.create(name: "Home Page") }
+
+    context 'create product without category' do
+      let(:prod) { Hbb::Product.create(name: 'Prod 1') }
+      subject { prod }
+
+      it 'should create product without category' do
+        lambda { prod }.should change(Hbb::Product, :count).by(1)
+      end
+
+      its('categories.to_a') { should == [] }
+    end
+
+    context 'create product with categories' do
+      let(:prod) { Hbb::Product.create(name: 'Prod 1') }
+
+      it 'should not throw any error' do
+        lambda {
+          Hbb::Product.create(name: 'Prod 1', :categories => [cat1, cat2])
+        }.should_not raise_error
+      end
+
+      it 'should create two records' do
+        lambda {
+          Hbb::Product.create(name: 'Prod 1', :categories => [cat1, cat2])
+        }.should change(Hbb.module_eval("Hbb::CategoriesProduct"), :count).by(2)
+      end
+
+      it 'should use same joining table for both reference' do
+        prod = Hbb::Product.create(name: 'Prod 1', :categories => [cat1, cat2])
+        prod = Hbb::Product.find(prod._id)
+
+        prod.categories.instance_variable_get(:@target_model).class.should ==
+            prod.categories.first.products.instance_variable_get(:@target_model).class
+      end
+
+      it 'should have category_ids method' do
+        prod.respond_to?(:category_ids).should be
+      end
+
+      it 'should have category_ids= method' do
+        prod.respond_to?(:'category_ids=').should be_true
+      end
+
+      it 'should set category by category_ids method' do
+        prod.update_attribute :category_ids, [cat1._id]
+
+        _prod = prod.reload
+        _prod.categories.to_a.should == [cat1]
+      end
+
+      it 'should return existing categories in category_ids' do
+        prod.update_attribute :category_ids, [cat1._id, cat2._id]
+        prod.reload.category_ids.should == [cat1._id, cat2._id]
+      end
+
+      describe 'update with existing categories' do
+        let!(:prod) { Hbb::Product.create(name: 'Prod x 1', :categories => [cat1]) }
+
+        it 'should have cat1 association' do
+          prod.categories.count.should == 1
+          prod.categories.first.should == cat1
+        end
+
+        it 'should assign cat2 without error' do
+          lambda {
+            prod.update_attribute :categories, [cat2]
+          }.should_not raise_error
+        end
+
+        it 'should assign cat2' do
+          prod.update_attribute :categories, [cat2]
+          _prod = prod.reload
+
+          _prod.categories.count.should == 1
+          _prod.categories.to_a.map(&:name).should == [cat2.name]
+        end
+
+        it 'should update category association by category_ids' do
+          prod.update_attribute :category_ids, [cat2._id]
+          prod.reload.category_ids.should == [cat2._id]
+
+          prod.update_attribute :category_ids, [cat1._id]
+          prod.reload.category_ids.should == [cat1._id]
+        end
+      end
+
+      describe 'product with categories' do
+        before { 5.times { Hbb::Product.create(name: "Prod x #{Time.now.to_i}") } }
+        let!(:prod) { Hbb::Product.create(name: 'Prod x 1', :categories => [cat1]) }
+        subject { Hbb::Product.find(prod._id) }
+
+        its(:_id) { should be }
+
+        its('categories.target_model') { should == eval('Hbb::CategoriesProduct') }
+        its(:categories) { should be }
+        its('categories.count') { should == 1 }
+        its('categories.first') { should == cat1 }
+      end
+    end
+
+    context 'category' do
+      it 'should have many products'
+    end
+
+  end
 
 end

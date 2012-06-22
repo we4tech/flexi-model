@@ -17,11 +17,15 @@ module FlexiModel
 
       # Find a record instance by id
       # Returns model instance
-      def find(id)
-        records = RECORD.includes(:values).where(id: id)
+      def find(id_or_ids)
+        records = RECORD.includes(:values).where(id: id_or_ids)
 
         if records.present?
-          initialize_with_record(records.first)
+          if id_or_ids.is_a?(Array)
+            records.map { |_record| initialize_with_record(_record)  }
+          else
+            initialize_with_record(records.first)
+          end
         else
           nil
         end
@@ -65,7 +69,10 @@ module FlexiModel
     class Criteria
       include Enumerable
 
-      attr_accessor :offset, :limit, :conditions, :host, :orders, :joins, :groups
+      attr_accessor :offset, :limit, :conditions, :host, :orders, :joins,
+                    :groups, :select_field
+      attr_reader :target_model
+
       protected :"joins=", :joins, :"orders=", :orders, :"groups=", :groups
 
       def initialize(host, target_model, namespace)
@@ -74,7 +81,7 @@ module FlexiModel
         @orders = {}
         @groups = []
         @target_model = target_model
-        @fields_id_map = target_model.flexi_fields.map{}
+        @select_object = nil
 
         # By default Max 100 items will be retrieved
         @limit = 100
@@ -104,6 +111,15 @@ module FlexiModel
 
       def get_limit
         @limit
+      end
+
+      def select_field(field)
+        self.select_field = field
+        self
+      end
+
+      def destroy_all
+        _perform_query.destroy_all
       end
 
       DEFAULT_SORTABLE_FIELDS = [:created_at, :updated_at]
@@ -178,7 +194,16 @@ module FlexiModel
         end
 
         def _convert_to_model(r)
-          @target_model.initialize_with_record(r)
+          _inst = @target_model.initialize_with_record(r)
+          if @select_field.present?
+            _inst.send(@select_field.to_sym)
+          else
+            _inst
+          end
+        end
+
+        def _singular_field(class_name)
+          class_name.name.split('::').last.underscore
         end
 
         def _members

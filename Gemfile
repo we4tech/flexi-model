@@ -1,13 +1,13 @@
 # A sample Gemfile
 source "https://rubygems.org"
 
-gem 'active_support'
+gem 'activesupport', '~> 3.2.6'
 gem 'jeweler'
 
 group :test do
   # Test environment dependencies
-  gem 'activerecord'
-  gem 'activemodel'
+  gem 'activerecord', '~> 3.2.6'
+  gem 'activemodel', '~> 3.2.6'
 
   gem 'sqlite3'
 

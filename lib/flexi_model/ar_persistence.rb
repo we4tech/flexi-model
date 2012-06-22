@@ -40,7 +40,8 @@ module FlexiModel
                   _flexi_metadata[:label_plural]].compact
 
         if labels.empty?
-          [self.name.singularize, self.name.pluralize]
+          _f_name = _friendly_name(self.name)
+          [_f_name.singularize, _f_name.pluralize]
         else
           labels
         end
@@ -81,6 +82,11 @@ module FlexiModel
 
         inst
       end
+
+      private
+        def _friendly_name(long_name)
+          long_name.to_s.split("::").last
+        end
     end
 
     def initialize(*)
@@ -93,6 +99,11 @@ module FlexiModel
       self._id && self._id == another_instance._id
     end
 
+    # Return true if record is not saved
+    def new_record?
+      !_id.present?
+    end
+
     # Store record in persistent storage
     def save
       create_or_update
@@ -101,6 +112,10 @@ module FlexiModel
 
     # Update stored attributes by give hash
     def update_attributes(hash)
+      # Send message to local methods
+      hash.each { |k, v| self.send(:"#{k}=", v) if self.respond_to?(:"#{k}=") }
+
+      # Retrieve existing record
       _record = _get_record
 
       _fields_value_map = Hash[
@@ -108,9 +123,6 @@ module FlexiModel
             [_field, hash[_key]] if hash.keys.include?(_key)
           }.compact
       ]
-
-      # update host object
-      #hash.each { |k, v| self.send(:"#{k}=", v) }
 
       # Retrieve existing mapping
       _values = _record.values.
@@ -137,6 +149,11 @@ module FlexiModel
       else
         false
       end
+    end
+
+    # Reload object instance
+    def reload
+      self.class.find(self._id)
     end
 
     # Return existing or create new collection set
@@ -203,7 +220,7 @@ module FlexiModel
 
       @attributes.map do |k, v|
         field = fields_map[k]
-        raise "Filed - #{k} not defined" if field.nil?
+        raise "Field- #{k} not defined" if field.nil?
         VALUE.new(:field => field, value: self.send(k))
       end
     end
@@ -259,7 +276,7 @@ module FlexiModel
       fields           = _build_fields
       added_or_removed = existing.fields.length != fields.length
       name_changed     = existing.fields.map(&:name).sort != fields.map(&:name).sort
-      type_changed     = existing.fields.map(&:field_type).sort != fields.map(&:type).sort
+      type_changed     = existing.fields.map(&:field_type).sort != fields.map(&:field_type).sort
 
       added_or_removed || name_changed || type_changed
     end

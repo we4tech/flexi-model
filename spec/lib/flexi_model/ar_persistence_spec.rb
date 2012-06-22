@@ -183,6 +183,20 @@ describe FlexiModel::ArPersistence do
     end
   end
 
+  describe '#new_record?' do
+    context 'unsaved record' do
+      it 'should be new' do
+        Model.new.new_record?.should be
+      end
+    end
+
+    context 'saved record' do
+      it 'should be not new' do
+        Model.create(name: 'hasan', email: 'abc@def.com').new_record?.should be_false
+      end
+    end
+  end
+
   describe '#update_attributes' do
     class User
       include FlexiModel

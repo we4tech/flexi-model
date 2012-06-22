@@ -28,7 +28,10 @@ module FlexiModel
       args.each do |k, v|
         self.send :"#{k.to_s}=", v
       end
+    end
 
+    def to_s
+      %{#<#{self.class.name}:#{self.object_id} #{@attributes.map { |k, v| ":#{k}=>'#{v}'" }.join(' ')}>}
     end
 
     module ClassMethods
@@ -54,6 +57,7 @@ module FlexiModel
         singular = options[:singular] || name.to_s.singularize
         plural = options[:plural] || name.to_s.pluralize
         _type = type.is_a?(Symbol) || type.is_a?(String) ? type : type.name
+        serialize = options[:serialize]
 
         field = FlexiField.new(name, _type.to_s.downcase, default)
         field.singular = singular
@@ -61,6 +65,8 @@ module FlexiModel
 
         define_field(field)
       end
+
+      alias_method :_ff, :flexi_field
 
       # Remove field by field name
       # Return list of existing fields
