@@ -64,6 +64,19 @@ module FlexiModel
         inst
       end
 
+      # Return by default plural label
+      def flexi_label(singular = false)
+        if singular
+          self._flexi_collection.singular_label
+        else
+          self._flexi_collection.plural_label
+        end
+      end
+
+      def flexi_collection; _flexi_collection end
+
+      delegate :id, :to => :_flexi_collection
+
       def destroy_all;
         RECORD.by_namespace(self.get_flexi_namespace).each do |record|
           inst = initialize_with_record(record)

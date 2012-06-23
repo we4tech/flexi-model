@@ -3,11 +3,9 @@ module FlexiModel
     extend ActiveSupport::Concern
 
     included do
-      instance_eval <<-RUBY
+      class_eval <<-CODE, __FILE__, __LINE__ + 1
         attr_accessor :attributes
-      RUBY
 
-      class_eval <<-RUBY
         @@flexi_fields = []
         cattr_accessor :flexi_fields
 
@@ -19,7 +17,7 @@ module FlexiModel
 
         @@flexi_partition_id = 0
         cattr_accessor :flexi_partition_id
-      RUBY
+      CODE
     end
 
     # Define attribute initializable constructor
@@ -31,7 +29,7 @@ module FlexiModel
     end
 
     def to_s
-      %{#<#{self.class.name}:#{self.object_id} #{@attributes.map { |k, v| ":#{k}=>'#{v}'" }.join(' ')}>}
+      %{#<#{self.class.name}:#{sprintf '0x%x', self.object_id} #{@attributes.map { |k, v| ":#{k}=>'#{v}'" }.join(' ')}>}
     end
 
     module ClassMethods
@@ -53,6 +51,7 @@ module FlexiModel
       #
       # Return +Field+ instance
       def flexi_field(name, type, options = {})
+        accessible = options[:accessible] || true
         default = options[:default]
         singular = options[:singular] || name.to_s.singularize
         plural = options[:plural] || name.to_s.pluralize
@@ -60,6 +59,7 @@ module FlexiModel
         serialize = options[:serialize]
 
         field = FlexiField.new(name, _type.to_s.downcase, default)
+        field.accessible = accessible
         field.singular = singular
         field.plural = plural
 
@@ -85,7 +85,7 @@ module FlexiModel
         _flexi_fields_by_name[(field.name.is_a?(Symbol) ? field.name : field.name.to_sym)] = field
 
         # Define setter & getter
-        self.class_eval <<-RUBY
+        self.class_eval <<-CODE
           def #{field.name.to_s}=(v)
             @attributes[:'#{field.name.to_s}'] = v
           end
@@ -99,15 +99,15 @@ module FlexiModel
               val
             end
           end
-        RUBY
+        CODE
 
         # Define ? method if boolean field
         if field.type == 'boolean'
-          self.class_eval <<-RUBY
+          self.class_eval <<-CODE
             def #{field.name.to_s}?
               self.#{field.name.to_s}
             end
-          RUBY
+          CODE
         end
       end
     end
@@ -131,7 +131,7 @@ module FlexiModel
     end
 
     class FlexiField
-      attr_accessor :name, :type, :default, :singular, :plural
+      attr_accessor :name, :type, :default, :singular, :plural, :accessible
 
       def initialize(name, type, default = nil)
         @name = name
