@@ -73,7 +73,9 @@ module FlexiModel
         end
       end
 
-      def flexi_collection; _flexi_collection end
+      def flexi_collection;
+        _flexi_collection
+      end
 
       delegate :id, :to => :_flexi_collection
 
@@ -97,9 +99,9 @@ module FlexiModel
       end
 
       private
-        def _friendly_name(long_name)
-          long_name.to_s.split("::").last
-        end
+      def _friendly_name(long_name)
+        long_name.to_s.split("::").last
+      end
     end
 
     def initialize(*)
@@ -124,9 +126,11 @@ module FlexiModel
     end
 
     # Update stored attributes by give hash
-    def update_attributes(hash)
+    def update_attributes(_params)
+      hash = Hash[_params.map{|k, v| [k.to_sym, v]}]
+
       # Send message to local methods
-      hash.each { |k, v| self.send(:"#{k}=", v) if self.respond_to?(:"#{k}=") }
+      assign_attributes hash
 
       # Retrieve existing record
       _record = _get_record
@@ -138,7 +142,7 @@ module FlexiModel
       ]
 
       # Retrieve existing mapping
-      _values = _record.values.
+      _values           = _record.values.
           map { |v| v if _fields_value_map.include?(v.field) }.compact
 
       _values.each do |_value|
@@ -167,6 +171,11 @@ module FlexiModel
     # Reload object instance
     def reload
       self.class.find(self._id)
+    end
+
+    # Forcefully load all attributes
+    def load_attributes!
+      self.flexi_fields.map{|f| self.send(f.name.to_sym)}
     end
 
     # Return existing or create new collection set
@@ -203,6 +212,7 @@ module FlexiModel
 
     def update
       record = _get_record
+      record.values.destroy_all
       record.update_attributes(
           values: _get_values
       )
@@ -233,7 +243,7 @@ module FlexiModel
 
       @attributes.map do |k, v|
         field = fields_map[k]
-        raise "Field- #{k} not defined" if field.nil?
+        raise "Field - #{k} not defined" if field.nil?
         VALUE.new(:field => field, value: self.send(k))
       end
     end
@@ -280,13 +290,15 @@ module FlexiModel
 
 
       # Check fields
-      if _fields_changed? existing
+      fields = _build_fields
+      if _fields_changed? fields, existing
+        # TODO: Dangerous need to fix it up
+        existing.fields.destroy_all
         existing.update_attribute :fields, fields
       end
     end
 
-    def _fields_changed?(existing)
-      fields           = _build_fields
+    def _fields_changed?(fields, existing)
       added_or_removed = existing.fields.length != fields.length
       name_changed     = existing.fields.map(&:name).sort != fields.map(&:name).sort
       type_changed     = existing.fields.map(&:field_type).sort != fields.map(&:field_type).sort

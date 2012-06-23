@@ -252,7 +252,7 @@ describe FlexiModel::ArPersistence do
     end
 
     it 'should update with a single key and value' do
-      user.update_attribute :name, 'vulu'
+      user.update_attribute 'name', 'vulu'
       _u = HolaUser.find(user._id)
       _u.name.should == 'vulu'
     end

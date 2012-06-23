@@ -159,6 +159,34 @@ describe FlexiModel::Fields do
         inst.respond_to?(:"#{f}=").should be
       end
     end
+  end
 
+  context 'multi parameters' do
+    class Cat
+      include FlexiModel
+      _ff :name, :string
+      _ff :feed_at, :datetime
+
+      validates_presence_of :name, :feed_at
+    end
+
+    it 'should create cat with multiple parameters' do
+      lambda {
+        Cat.create(
+            name:                'Cat2',
+            "feed_at(1i)" => "2012",
+            "feed_at(2i)" => "6",
+            "feed_at(3i)" => "23",
+            "feed_at(4i)" => "09",
+            "feed_at(5i)" => "58"
+        )
+      }.should change(Cat, :count).by(1)
+    end
+
+    it 'should create cat without multiple parameters' do
+      lambda {
+        Cat.create(name: 'Cat1', feed_at: Time.now)
+      }.should change(Cat, :count).by(1)
+    end
   end
 end

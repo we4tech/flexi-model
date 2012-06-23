@@ -25,6 +25,7 @@ module FlexiModel
       }
 
       has_and_belongs_to_many :collections, :join_table => 'flexi_model_collections_fields'
+      has_many :values, :dependent => :destroy
 
       validates_presence_of :name, :field_type
 

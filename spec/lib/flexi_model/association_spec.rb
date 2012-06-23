@@ -81,7 +81,9 @@ describe FlexiModel::Association do
         let(:review) { Bt::Review.create() }
         subject { review }
 
-        its('errors.count') { should == 2 }
+        its('errors.count') {
+          should == 2
+        }
 
         it 'should have error on :comment' do
           subject.errors[:comment].should be
