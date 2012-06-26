@@ -127,29 +127,31 @@ module FlexiModel
 
     # Update stored attributes by give hash
     def update_attributes(_params)
-      hash = Hash[_params.map{|k, v| [k.to_sym, v]}]
+      hash = Hash[_params.map { |k, v| [k.to_sym, v] }]
 
       # Send message to local methods
       assign_attributes hash
 
       # Retrieve existing record
-      _record = _get_record
+      _load_record_instance!
 
-      _fields_value_map = Hash[
+      _fields_with_new_values = Hash[
           get_flexi_fields_map.map { |_key, _field|
             [_field, hash[_key]] if hash.keys.include?(_key)
           }.compact
       ]
 
       # Retrieve existing mapping
-      _values           = _record.values.
-          map { |v| v if _fields_value_map.include?(v.field) }.compact
+      _existing_values           = Hash[_record.values.map { |_v| [_v.field, _v] }]
 
-      _values.each do |_value|
-        _new_value = _fields_value_map[_value.field]
-        self.send(:"#{_value.field.name.to_s}=", _new_value)
+      _fields_with_new_values.each do |_field, _new_value|
+        _existing_value = _existing_values[_field]
 
-        _value.update_attribute _value.field.value_column, self.send(_value.field.name.to_sym)
+        if _existing_value
+          _existing_value.update_attribute _field.value_column, self.send(_field.name.to_sym)
+        else
+          self._record.values << VALUE.new(:field => _field, value: self.send(_field.name.to_sym))
+        end
       end
 
       true
@@ -175,7 +177,7 @@ module FlexiModel
 
     # Forcefully load all attributes
     def load_attributes!
-      self.flexi_fields.map{|f| self.send(f.name.to_sym)}
+      self.flexi_fields.map { |f| self.send(f.name.to_sym) }
     end
 
     # Return existing or create new collection set
@@ -187,10 +189,9 @@ module FlexiModel
 
     # Return flexi fields in name and field object map
     def get_flexi_fields_map
-      key_value_array = get_flexi_collection.fields.
-          map { |_field| [_field.name.to_sym, _field] }
-
-      self._flexi_fields_map ||= Hash[key_value_array]
+      self._flexi_fields_map ||=
+          Hash[get_flexi_collection.fields.
+                   map { |_field| [_field.name.to_sym, _field] }]
     end
 
     private
@@ -213,38 +214,41 @@ module FlexiModel
     def update
       record = _get_record
       record.values.destroy_all
-      record.update_attributes(
-          values: _get_values
-      )
+      record.update_attributes( values: _get_values )
       record
     end
 
     def _get_record
+      _load_record_instance!
+      self._record
+    end
+
+    def _load_record_instance!
       self._record ||= _record_load_or_initialize
     end
 
     def _record_load_or_initialize
       collection = _find_or_update_or_build_collection!
 
-      if _id.nil?
+      if self._id.nil?
         RECORD.new(
             namespace:  self.class.get_flexi_namespace,
             collection: collection,
-            values:     _get_values
+            values:     self.send(:_get_values)
         )
       else
-        RECORD.find(_id)
+        RECORD.find(self._id)
       end
     end
 
     # Return `Value` object based on flexi attributes
     def _get_values
-      fields_map = get_flexi_fields_map
+      _fields_map = get_flexi_fields_map
 
       @attributes.map do |k, v|
-        field = fields_map[k]
+        field = _fields_map[k]
         raise "Field - #{k} not defined" if field.nil?
-        VALUE.new(:field => field, value: self.send(k))
+        VALUE.new(:field => field, value: self.send(:"#{k}"))
       end
     end
 

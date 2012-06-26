@@ -5,8 +5,6 @@ module FlexiModel
       attr_accessible :name, :singular_label,:plural_label, :namespace,
                       :partition_id, :field_type, :default_value
 
-      TYPES           = [:integer, :boolean, :multiple, :decimal, :float, :string, :text,
-                         :datetime, :date, :time, :email, :phone, :address, :location]
       COLUMNS_MAP     = {
           boolean:  :bool_value,
           integer:  :int_value,

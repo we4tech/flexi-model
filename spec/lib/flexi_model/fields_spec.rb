@@ -173,7 +173,7 @@ describe FlexiModel::Fields do
     it 'should create cat with multiple parameters' do
       lambda {
         Cat.create(
-            name:                'Cat2',
+            name:         'Cat2',
             "feed_at(1i)" => "2012",
             "feed_at(2i)" => "6",
             "feed_at(3i)" => "23",
@@ -189,4 +189,99 @@ describe FlexiModel::Fields do
       }.should change(Cat, :count).by(1)
     end
   end
+
+  context 'alternative methods' do
+    class Animal
+      include FlexiModel
+    end
+
+    it 'should have _ff method' do
+      Animal.respond_to?(:_ff).should be
+    end
+
+    it 'should have types named methods' do
+      FlexiModel::Fields::TYPES.each do |_type|
+        Animal.respond_to?(:"_#{_type}").should be
+      end
+    end
+
+    describe 'accept multiple definition through type based method' do
+      it 'should not throw any error' do
+        lambda {
+          class HolaUser
+            include FlexiModel
+            _string :name, :email
+          end
+        }.should_not raise_error
+      end
+
+      it 'should define 2 fields from the single line definition' do
+        class HiUser
+          include FlexiModel
+          _string :name, :email
+        end
+
+        HiUser.flexi_fields.map(&:name).should == [:name, :email]
+        HiUser.flexi_fields.map(&:type).should == ['string', 'string']
+      end
+    end
+  end
+
+  describe '.flexi_fields_except_foreign_key' do
+    class Cow
+      include FlexiModel
+      _string :name
+
+      belongs_to :cow
+      has_many :cows
+    end
+
+    it 'should list all fields' do
+      Cow.flexi_fields.map(&:name).should == [:name, :cow_id]
+    end
+
+    it 'should exclude foreign keys' do
+      Cow.flexi_fields_except_fk.map(&:name).should == [:name]
+    end
+
+    it 'should have associated class' do
+      Cow.associated_classes[:cow_id].should == Cow
+    end
+  end
+
+  describe 'set_flexi_name_field' do
+    context 'without explicit definition' do
+      class Tiger
+        include FlexiModel
+        _string :name
+      end
+
+      it 'should have _name field' do
+        Tiger.new.respond_to?(:_name).should be
+      end
+
+      it 'should return value from default field' do
+        Tiger.create(name: 'Hola').reload._name.should == 'Hola'
+      end
+    end
+
+    context 'with explicit definition' do
+      class Tiger2
+        include FlexiModel
+        _string :name
+        _string :email
+
+        set_flexi_name_field :email
+      end
+
+      it 'should have _name field' do
+        Tiger2.new.respond_to?(:_name).should be
+      end
+
+      it 'should return value from default field' do
+        Tiger2.create(email: 'abc@hola.com', name: 'Hola').reload._name.should == 'abc@hola.com'
+      end
+    end
+  end
+
 end

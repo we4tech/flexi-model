@@ -1,5 +1,9 @@
+# encoding: UTF-8
 module FlexiModel
   module Fields
+    TYPES = [:integer, :boolean, :multiple, :decimal, :float, :string, :text,
+             :datetime, :date, :time, :email, :phone, :address, :location]
+
     extend ActiveSupport::Concern
 
     MULTI_PARAMS_FIELDS = ['datetime', 'date', 'time']
@@ -7,6 +11,9 @@ module FlexiModel
     included do
       class_eval <<-CODE, __FILE__, __LINE__ + 1
         attr_accessor :attributes
+
+        @@flexi_visible = true
+        cattr_accessor :flexi_visible
 
         @@flexi_fields = []
         cattr_accessor :flexi_fields
@@ -19,13 +26,15 @@ module FlexiModel
 
         @@flexi_partition_id = 0
         cattr_accessor :flexi_partition_id
+
+        @@flexi_name_field = :name
+        cattr_accessor :flexi_name_field
       CODE
     end
 
-    # Define attribute initializable constructor
+    # Define attribute initialization constructor
     def initialize(args = { })
       @attributes = { }
-
       assign_attributes(args) if args.present?
     end
 
@@ -70,11 +79,34 @@ module FlexiModel
       end
     end
 
+    # Return default name from the object instance
+    # This accessor could be set through set_flexi_name_field :title
+    def _name
+      if self.respond_to?(self.flexi_name_field)
+        self.send(self.flexi_name_field)
+      else
+        raise "Define your name field accessor (which may return the object
+              title, name or whatever it describes about the current instance)
+              - set_flexi_name_field :different_accessor"
+      end
+    end
+
     def to_s
       %{#<#{self.class.name}:#{sprintf '0x%x', self.object_id} #{@attributes.map { |k, v| ":#{k}=>'#{v}'" }.join(' ')}>}
     end
 
     module ClassMethods
+
+      # Set field name to determine default name field.
+      def set_flexi_name_field(field)
+        self.flexi_name_field = field
+      end
+
+      # Set current model as visible or invisible to admin panel
+      # Setting false won't publicize this model over admin panel
+      def set_flexi_visible(bool)
+        self.flexi_visible = bool
+      end
 
       # Isolate and group all models under a single administration panel
       # This is useful when we are hosting these models under a single platform.
@@ -110,6 +142,20 @@ module FlexiModel
 
       alias_method :_ff, :flexi_field
 
+      # Define flexible field definition
+      TYPES.each do |_field|
+        self.class_eval <<-CODE
+          def _#{_field.to_s}(*args)
+            options = args.last && args.last.is_a?(Hash) ? args.last : {}
+            args.each do |_field_name|
+              unless _field_name.is_a?(Hash)
+                flexi_field _field_name, :#{_field.to_s}, options
+              end
+            end
+          end
+        CODE
+      end
+
       # Remove field by field name
       # Return list of existing fields
       def remove_flexi_field(name)
@@ -124,7 +170,9 @@ module FlexiModel
         flexi_fields << field
 
         # Map name and field
-        _flexi_fields_by_name[(field.name.is_a?(Symbol) ? field.name : field.name.to_sym)] = field
+        _flexi_fields_by_name[
+            (field.name.is_a?(Symbol) ?
+                field.name : field.name.to_sym)] = field
 
         _define_accessors(field)
       end
@@ -138,8 +186,9 @@ module FlexiModel
           end
 
           def #{field.name.to_s}
-            @attributes[:#{field.name.to_s}] ||= _cast(_get_value(:#{field.name.to_s}), :#{field.type})
+            @attributes[:'#{field.name.to_s}'] ||= _cast(_get_value(:'#{field.name.to_s}'), :#{field.type})
           end
+
         CODE
 
         # Define ? method if boolean field
@@ -153,16 +202,16 @@ module FlexiModel
       end
     end
 
-    def _cast(value, _type)
-      return value if value.nil?
+    def _cast(_value, _type)
+      return _value if _value.nil?
 
       case _type
         when :decimal, :float
-          value.to_f
+          _value.to_f
         when :integer, :number
-          value.to_i
+          _value.to_i
         else
-          value
+          _value
       end
     end
 

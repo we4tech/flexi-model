@@ -6,6 +6,9 @@ module FlexiModel
       class_eval <<-ATTRS, __FILE__, __LINE__ + 1
         cattr_accessor :associations
         @@associations = {}
+
+        cattr_accessor :associated_classes
+        @@associated_classes = {}
       ATTRS
     end
 
@@ -13,7 +16,7 @@ module FlexiModel
 
       # Create relationship between two flexi model based on primary key
       def belongs_to(model_name, options = { })
-        _id_field     = "#{model_name.to_s}_id"
+        _id_field     = options[:foreign_key] || "#{model_name.to_s}_id"
         _target_model = (options[:class_name] || model_name).to_s.classify
 
         self.flexi_field _id_field.to_sym, :integer
@@ -21,6 +24,8 @@ module FlexiModel
         # Generate dynamic finder method
         _build_belongs_to_accessors model_name, _target_model, _id_field
 
+        self.associated_classes["#{model_name.to_s.singularize}_id".to_sym] =
+            _find_class(_target_model.to_sym)
         (self.associations[:belongs_to] ||= []) << model_name
       end
 
@@ -34,7 +39,9 @@ module FlexiModel
 
         _build_has_many_accessors _class_name, model_name
 
-        (self.associations[:hash_many] ||= []) << model_name
+        self.associated_classes["#{model_name.to_s.singularize}_id".to_sym] =
+            _find_class(_class_name.to_sym)
+        (self.associations[:has_many] ||= []) << model_name
       end
 
       # Create many to many relationship between two flexi models based
@@ -47,26 +54,38 @@ module FlexiModel
       def has_and_belongs_to_many(method_name, options = { })
         # Get joining class name (dev can specify over :joining_class option)
         _joining_class_name =
-            ( options[:joining_class] || _build_joining_class_name(method_name) ).to_sym
+            (options[:joining_class] || _build_joining_class_name(method_name)).to_sym
 
         # Build field name
-        _fields = [ _build_field_name(self.name), _build_field_name(method_name) ]
+        _fields             = [_build_field_name(self.name), _build_field_name(method_name)]
 
         # Eval dynamic joining class
-        _joining_class = _build_joining_class _joining_class_name, _fields
+        _joining_class      = _build_joining_class _joining_class_name, _fields
 
         # Create setter for setting all <target> records
         _build_habtm_class_accessors _joining_class_name, method_name, _fields
 
-        (self.associations[:hash_and_belongs_to_many] ||= []) << method_name
+        self.associated_classes["#{method_name.to_s.singularize}_id".to_sym] =
+            _joining_class
+        (self.associations[:has_and_belongs_to_many] ||= []) << method_name
       end
 
-    private
+      # Return list of fields excluding relationship's foreign key for
+      def flexi_fields_except_fk
+        _values = self.associations.values.flatten.map { |_v| :"#{_v.to_s.singularize}_id" }
+        self.flexi_fields.select { |_f| !_values.include?(_f.name.to_sym) }
+      end
+
+      private
       def _build_belongs_to_accessors(model_name, target_model, id_field)
         self.class_eval <<-ACCESSORS, __FILE__, __LINE__ + 1
           # Return object instance
           def #{model_name.to_s}
             @#{model_name.to_s} ||= self.class.parent::#{target_model}.find(self.#{id_field})
+          end
+
+          def #{model_name.to_s}_type
+            :#{target_model.classify}
           end
 
           # Set object instance
@@ -79,19 +98,46 @@ module FlexiModel
       end
 
       def _build_habtm_class_accessors(_class_name, method_name, _fields)
-        _column_name = "#{_fields.first}_id"
+        _column_name = "first_id"
 
         self.class_eval <<-ACCESSORS, __FILE__, __LINE__ + 1
           def #{method_name}_changed?; @#{method_name}_changed end
 
+          def #{method_name}_meta
+            @#{method_name}_meta ||= _load_#{method_name}_meta
+          end
+
+          def _load_#{method_name}_meta
+            _cls_name = :"#{method_name.to_s.classify}"
+            _inst = #{_class_name}.new
+            _fk_field, _select_field =  if _cls_name == _inst.first_type
+              [:second, :first]
+            else
+              [:first, :second]
+            end
+
+            _fk_id_field = :"\#{_fk_field.to_s}_id"
+
+            {
+              fk_id_field: _fk_id_field,
+              select_field: _select_field,
+              class_name: _cls_name
+            }
+          end
+
           def #{method_name}
-            @#{method_name} ||= #{_class_name}.where(#{_column_name}: self._id).select_field(:#{_fields.last})
+            #_meta = self.#{method_name}_meta
+            #p _meta
+
+            @#{method_name} ||= #{_class_name}.
+              where(:first_id => self._id).select_field(:second)
           end
 
           def #{method_name.to_s.singularize}_ids=(ids)
-            @#{method_name.to_s.singularize}_ids ||= ids
-            @#{method_name}= self.class.send(:_find_class, :#{method_name.to_s.classify}).where(id: ids).to_a
-            @#{method_name}_changed = true
+            @#{method_name.to_s.singularize}_ids = ids
+            self.#{method_name}= self.class.send(
+              :_find_class, :#{method_name.to_s.classify}).
+                where(id: ids).to_a
           end
 
           def #{method_name.to_s.singularize}_ids
@@ -129,8 +175,8 @@ module FlexiModel
             @#{method_name}.each do |_target_inst|
               _target_inst.save if _target_inst.new_record?
               _map = #{_class_name}.create(
-                #{_fields.first}: self,
-                #{_fields.last}: _target_inst
+                first: self,
+                second: _target_inst
               )
 
               raise _map.errors.inspect if _map.errors.present?
@@ -151,10 +197,12 @@ module FlexiModel
           class #{class_name}
             include FlexiModel
 
-            belongs_to :#{fields.first}
-            belongs_to :#{fields.last}
+            set_flexi_visible false
 
-            validates_presence_of :#{fields.first}_id, :#{fields.last}_id
+            belongs_to :first, :class_name => :#{fields.first}
+            belongs_to :second, :class_name => :#{fields.last}
+
+            validates_presence_of :first_id, :second_id
           end
 
           #{class_name}
@@ -163,10 +211,10 @@ module FlexiModel
 
       def _build_joining_class_name(model_name)
         _parts = self.name.to_s.split("::")
-        _name = _parts.last
+        _name  = _parts.last
 
         _class_name = [model_name.to_s.pluralize.downcase,
-                       _name.pluralize.downcase].sort.join('_').classify
+                       _name.pluralize.downcase].join('_').classify
 
         if _parts.length > 1
           "#{_parts[0..(_parts.length - 2)].join('::')}::#{_class_name}"
@@ -224,6 +272,8 @@ module FlexiModel
         self.class_eval <<-CLASS, __FILE__, __LINE__ + 1
             class #{name.to_s}
               include FlexiModel
+
+              set_flexi_visible false
 
               flexi_field :#{_field_1}_id, :integer
               flexi_field :#{_field_2}_id, :integer

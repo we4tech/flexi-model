@@ -95,6 +95,85 @@ describe FlexiModel::Association do
 
       end
     end
+
+    module SelfRefBt
+      class Category
+        include FlexiModel
+        _string :name
+
+        belongs_to :category
+        has_many :categories
+      end
+    end
+
+    it 'should create category without association object' do
+      lambda {
+        SelfRefBt::Category.create(name: 'Cat 1')
+      }.should change(SelfRefBt::Category, :count).by(1)
+    end
+
+    it 'should create category with association object' do
+      parent = SelfRefBt::Category.create(name: 'Cat 1')
+      parent.category.should be_nil
+
+      child = nil
+      lambda {
+        child = SelfRefBt::Category.create(name: 'Cat 2', category: parent)
+      }.should change(SelfRefBt::Category, :count).by(1)
+
+      child.category.should == parent
+      child.categories.to_a.should == []
+      parent.categories.to_a.should == [child]
+    end
+
+    it 'should create category with association object id' do
+      parent = SelfRefBt::Category.create(name: 'Cat 1')
+      parent.category.should be_nil
+
+      child = nil
+      lambda {
+        child = SelfRefBt::Category.create(name: 'Cat 2', category_id: parent._id)
+      }.should change(SelfRefBt::Category, :count).by(1)
+
+      child.category.should == parent
+      child.categories.to_a.should == []
+      parent.categories.to_a.should == [child]
+    end
+
+    it 'should update category with association object id' do
+      parent = SelfRefBt::Category.create(name: 'Cat 1')
+      parent.category.should be_nil
+
+      child = SelfRefBt::Category.create(name: 'Cat 2')
+
+      lambda {
+        child.update_attributes(category_id: parent._id)
+      }.should change(SelfRefBt::Category, :count).by(0)
+
+      child.reload.category.should == parent
+      child.reload.categories.to_a.should == []
+      parent.reload.categories.to_a.should == [child]
+    end
+
+    describe 'with same name' do
+      module Bt2
+        class Hat
+          include FlexiModel
+          _string :name
+
+        end
+
+        class Cat
+          include FlexiModel
+          belongs_to :cat
+          belongs_to :hat, foreign_key: :hu_id
+        end
+      end
+
+      it 'should have created hu_id as foreign key' do
+        Bt2::Cat.flexi_fields.map(&:name).sort.should == [:cat_id, :hu_id]
+      end
+    end
   end
 
   describe '#has_many' do
@@ -121,7 +200,7 @@ describe FlexiModel::Association do
       before { Author.destroy_all }
       before { Book.destroy_all }
       let(:author) { Author.create(name: 'hasan') }
-      let!(:books) { 5.times.map {|i| Book.create(title: "Book title #{i}", author: author)} }
+      let!(:books) { 5.times.map { |i| Book.create(title: "Book title #{i}", author: author) } }
 
       it 'should have 5 books' do
         Book.all.count.should == 5
