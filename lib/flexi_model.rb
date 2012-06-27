@@ -2,7 +2,7 @@ require 'flexi_model/fields'
 require 'flexi_model/callbacks'
 require 'flexi_model/validations'
 require 'flexi_model/association'
-require 'flexi_model/scope'
+require 'flexi_model/filter'
 
 module FlexiModel
   extend ActiveSupport::Concern
@@ -30,6 +30,6 @@ module FlexiModel
   end
 
   include FlexiModel::Association
-  include FlexiModel::Scope
+  include FlexiModel::Filter
 
 end

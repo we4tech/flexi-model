@@ -137,9 +137,9 @@ module FlexiModel
         else
           field = _find_field(key)
           _join_table :values
-          column = "'#{FlexiModel::ArModels::Value.table_name}'.'#{field.value_column}'"
+          column = "`#{FlexiModel::ArModels::Value.table_name}`.`#{field.value_column}`"
           self.orders[column] = order_type
-          self.groups << "'#{FlexiModel::ArModels::Record.table_name}'.'id'"
+          self.groups << "`#{FlexiModel::ArModels::Record.table_name}`.`id`"
         end
 
         self
