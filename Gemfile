@@ -8,6 +8,7 @@ group :test do
   # Test environment dependencies
   gem 'activerecord', '~> 3.2.6'
   gem 'activemodel', '~> 3.2.6'
+  gem 'paperclip'
 
   gem 'sqlite3'
 

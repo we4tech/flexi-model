@@ -11,8 +11,7 @@ class CreateFlexiModelValues < ActiveRecord::Migration
       t.datetime 'dt_value'
     end
 
-    add_index 'flexi_model_values', [:record_id]
-    add_index 'flexi_model_values', [:field_id]
+    add_index 'flexi_model_values', [:record_id, :field_id]
 
   end
 end

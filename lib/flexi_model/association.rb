@@ -25,7 +25,8 @@ module FlexiModel
         _build_belongs_to_accessors model_name, _target_model, _id_field
 
         self.associated_classes["#{model_name.to_s.singularize}_id".to_sym] =
-            _find_class(_target_model.to_sym)
+            _target_model.to_sym
+
         (self.associations[:belongs_to] ||= []) << model_name
       end
 
@@ -40,7 +41,7 @@ module FlexiModel
         _build_has_many_accessors _class_name, model_name
 
         self.associated_classes["#{model_name.to_s.singularize}_id".to_sym] =
-            _find_class(_class_name.to_sym)
+            _class_name.to_sym
         (self.associations[:has_many] ||= []) << model_name
       end
 
@@ -68,14 +69,21 @@ module FlexiModel
             _joining_class_name, method_name, _fields, _self_ref)
 
         self.associated_classes["#{method_name.to_s.singularize}_id".to_sym] =
-            _joining_class
+            _joining_class.name.to_sym
         (self.associations[:has_and_belongs_to_many] ||= []) << method_name
       end
 
       # Return list of fields excluding relationship's foreign key for
       def flexi_fields_except_fk
-        _values = self.associations.values.flatten.map { |_v| :"#{_v.to_s.singularize}_id" }
-        self.flexi_fields.select { |_f| !_values.include?(_f.name.to_sym) }
+        _field_names = self.associations.values.flatten.map { |_v| :"#{_v.to_s.singularize}_id" }
+        if none_flexi_fields.present?
+          none_flexi_fields.each do |field|
+            ['file_name', 'content_type', 'file_size', 'updated_at'].each do |_suffix|
+              _field_names << :"#{field.name.to_s}_#{_suffix}"
+            end
+          end
+        end
+        self.flexi_fields.select { |_f| !_field_names.include?(_f.name.to_sym) }
       end
 
       private
@@ -124,7 +132,7 @@ module FlexiModel
           end
 
           def #{method_name.to_s.singularize}_ids
-            @#{method_name.to_s.singularize}_ids ||= #{method_name}.map(&:_id)
+            @#{method_name.to_s.singularize}_ids ||= #{method_name}.to_a.compact.map(&:_id)
           end
 
           def #{method_name}=(an_array)

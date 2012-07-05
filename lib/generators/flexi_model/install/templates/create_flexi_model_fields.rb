@@ -13,6 +13,8 @@ class CreateFlexiModelFields < ActiveRecord::Migration
 
     add_index 'flexi_model_fields', [:namespace, :name]
     add_index 'flexi_model_fields', [:namespace, :name, :field_type]
-    add_index 'flexi_model_fields', [:namespace, :name, :field_type, :partition_id], name: 'index_ns_name_ft_pi'
+    add_index 'flexi_model_fields', [:namespace, :name, :field_type, :partition_id],
+              :unique => true,
+              name: 'index_ns_name_ft_pi'
   end
 end

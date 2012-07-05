@@ -3,6 +3,7 @@ require 'flexi_model/callbacks'
 require 'flexi_model/validations'
 require 'flexi_model/association'
 require 'flexi_model/filter'
+require 'flexi_model/attachment_field'
 
 module FlexiModel
   extend ActiveSupport::Concern
@@ -10,6 +11,7 @@ module FlexiModel
   included do
     class_eval <<-RUBY
       attr_accessor :_id, :_record
+      alias_method :id, :_id
     RUBY
   end
 
@@ -31,5 +33,6 @@ module FlexiModel
 
   include FlexiModel::Association
   include FlexiModel::Filter
+  include FlexiModel::AttachmentField
 
 end

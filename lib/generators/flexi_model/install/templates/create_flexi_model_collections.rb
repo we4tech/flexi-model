@@ -12,6 +12,7 @@ class CreateFlexiModelCollections < ActiveRecord::Migration
     end
 
     add_index "flexi_model_collections", [:namespace, :name]
-    add_index "flexi_model_collections", [:namespace, :name, :partition_id], name: 'index_ns_name_pi'
+    add_index "flexi_model_collections", [:namespace, :name, :partition_id],
+              name: 'index_ns_name_pi', unique: true
   end
 end

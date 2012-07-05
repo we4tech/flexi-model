@@ -13,4 +13,7 @@ require 'spec_helper/models'
 
 require 'flexi_model'
 
+require 'paperclip'
+
+
 Dir.glob(File.join('spec', 'factories', '*')).each { |f| require f }

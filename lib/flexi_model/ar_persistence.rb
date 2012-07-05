@@ -127,34 +127,8 @@ module FlexiModel
 
     # Update stored attributes by give hash
     def update_attributes(_params)
-      hash = Hash[_params.map { |k, v| [k.to_sym, v] }]
-
-      # Send message to local methods
-      assign_attributes hash
-
-      # Retrieve existing record
-      _load_record_instance!
-
-      _fields_with_new_values = Hash[
-          get_flexi_fields_map.map { |_key, _field|
-            [_field, hash[_key]] if hash.keys.include?(_key)
-          }.compact
-      ]
-
-      # Retrieve existing mapping
-      _existing_values           = Hash[_record.values.map { |_v| [_v.field, _v] }]
-
-      _fields_with_new_values.each do |_field, _new_value|
-        _existing_value = _existing_values[_field]
-
-        if _existing_value
-          _existing_value.update_attribute _field.value_column, self.send(_field.name.to_sym)
-        else
-          self._record.values << VALUE.new(:field => _field, value: self.send(_field.name.to_sym))
-        end
-      end
-
-      true
+      assign_attributes _params
+      save
     end
 
     # Update single attribute by key and value
@@ -211,10 +185,10 @@ module FlexiModel
       record
     end
 
-    def update
+    def update(*)
       record = _get_record
       record.values.destroy_all
-      record.update_attributes( values: _get_values )
+      record.update_attributes(values: _get_values)
       record
     end
 
@@ -260,11 +234,11 @@ module FlexiModel
       return _flexi_collection if _flexi_collection.present?
 
       # Find existing collection
-      self._flexi_collection = COLLECTION.find_by_namespace_and_name_and_partition_id(
-          self.class.get_flexi_namespace,
-          self.class.flexi_collection_name,
-          self.class.flexi_partition_id
-      )
+      self._flexi_collection = COLLECTION.where(
+          namespace:    self.class.get_flexi_namespace,
+          name:         self.class.flexi_collection_name,
+          partition_id: self.class.flexi_partition_id
+      ).first
 
       # Update if schema changed
       if self._flexi_collection
@@ -326,24 +300,17 @@ module FlexiModel
 
     def _build_fields
       self.flexi_fields.map do |field|
-        _find_existing_field(field) || FIELD.new(
+        params = {
             namespace:      self.class.get_flexi_namespace,
             name:           field.name.to_s,
             partition_id:   self.class.flexi_partition_id,
             field_type:     field.type,
             singular_label: field.singular,
             plural_label:   field.plural
-        )
-      end
-    end
+        }
 
-    def _find_existing_field(field)
-      FIELD.find_by_namespace_and_name_and_field_type_and_partition_id(
-          self.class.get_flexi_namespace,
-          field.name.to_s,
-          field.type,
-          self.class.flexi_partition_id
-      )
+        FIELD.send(:"find_or_create_by_#{params.keys.map(&:to_s).join('_and_')}", params)
+      end
     end
   end
 end

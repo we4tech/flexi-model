@@ -2,7 +2,7 @@
 module FlexiModel
   module Fields
     TYPES = [:integer, :boolean, :multiple, :decimal, :float, :string, :text,
-             :datetime, :date, :time, :email, :phone, :address, :location]
+             :datetime, :date, :time, :email, :phone, :address, :location, :attachment]
 
     extend ActiveSupport::Concern
 
@@ -18,6 +18,9 @@ module FlexiModel
         @@flexi_fields = []
         cattr_accessor :flexi_fields
 
+        @@none_flexi_fields = []
+        cattr_accessor :none_flexi_fields
+
         @@_flexi_fields_by_name = {}
         cattr_accessor :_flexi_fields_by_name
 
@@ -29,6 +32,7 @@ module FlexiModel
 
         @@flexi_name_field = :name
         cattr_accessor :flexi_name_field
+
       CODE
     end
 
@@ -125,25 +129,29 @@ module FlexiModel
       #
       # Return +Field+ instance
       def flexi_field(name, type, options = { })
-        accessible = options[:accessible] || true
-        default    = options[:default]
-        singular   = options[:singular] || name.to_s.singularize
-        plural     = options[:plural] || name.to_s.pluralize
+        accessible = options.delete(:accessible)
+        default    = options.delete(:default)
+        singular   = options.delete(:singular) || name.to_s.singularize
+        plural     = options.delete(:plural) || name.to_s.pluralize
         _type      = type.is_a?(Symbol) || type.is_a?(String) ? type : type.name
-        serialize  = options[:serialize]
+
 
         field            = FlexiField.new(name, _type.to_s.downcase, default)
         field.accessible = accessible
         field.singular   = singular
         field.plural     = plural
+        field.options    = options
 
-        define_field(field)
+        opt_accessors = options.delete(:accessors)
+        generate_accessors = opt_accessors.nil? ? true : opt_accessors
+
+        define_field(field, generate_accessors)
       end
 
       alias_method :_ff, :flexi_field
 
       # Define flexible field definition
-      TYPES.each do |_field|
+      (TYPES - [:attachment]).each do |_field|
         self.class_eval <<-CODE
           def _#{_field.to_s}(*args)
             options = args.last && args.last.is_a?(Hash) ? args.last : {}
@@ -162,19 +170,23 @@ module FlexiModel
         flexi_fields.reject! { |f| f.name == name }
       end
 
-      def define_field(field)
-        # Remove existing definition
-        remove_flexi_field field.name
-
+      def define_field(field, generate_accessors = true)
         # Add new field
-        flexi_fields << field
+        if generate_accessors
+          # Remove existing definition
+          remove_flexi_field field.name
 
-        # Map name and field
-        _flexi_fields_by_name[
-            (field.name.is_a?(Symbol) ?
-                field.name : field.name.to_sym)] = field
+          flexi_fields << field
 
-        _define_accessors(field)
+          # Map name and field
+          _flexi_fields_by_name[
+              (field.name.is_a?(Symbol) ?
+                  field.name : field.name.to_sym)] = field
+
+          _define_accessors(field)
+        else
+          none_flexi_fields << field
+        end
       end
 
       private
@@ -210,6 +222,22 @@ module FlexiModel
           _value.to_f
         when :integer, :number
           _value.to_i
+        when :multiple
+          if _value.is_a?(String)
+            YAML.load(_value)
+          elsif Array
+            _value.map do |v|
+              if v.is_a?(Hash)
+                if v.values.map(&:blank?).uniq == [true]
+                  nil
+                else
+                  v
+                end
+              else
+                v
+              end
+            end.compact
+          end
         else
           _value
       end
@@ -241,12 +269,13 @@ module FlexiModel
 
 
     class FlexiField
-      attr_accessor :name, :type, :default, :singular, :plural, :accessible
+      attr_accessor :name, :type, :default, :singular, :plural, :accessible, :options
 
       def initialize(name, type, default = nil)
         @name    = name
         @type    = type
         @default = default
+        @options = { }
       end
 
       def value(context)

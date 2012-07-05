@@ -25,7 +25,8 @@ ActiveRecord::Schema.define(:version => 20120318055757) do
   end
 
   add_index "flexi_model_collections", [:namespace, :name]
-  add_index "flexi_model_collections", [:namespace, :name, :partition_id], name: 'index_ns_name_pi'
+  add_index "flexi_model_collections", [:namespace, :name, :partition_id],
+            name: 'index_ns_name_pi', unique: true
 
   create_table 'flexi_model_fields', :force => true do |t|
     t.string 'name'
@@ -40,7 +41,9 @@ ActiveRecord::Schema.define(:version => 20120318055757) do
 
   add_index 'flexi_model_fields', [:namespace, :name]
   add_index 'flexi_model_fields', [:namespace, :name, :field_type]
-  add_index 'flexi_model_fields', [:namespace, :name, :field_type, :partition_id], name: 'index_ns_name_ft_pi'
+  add_index 'flexi_model_fields', [:namespace, :name, :field_type, :partition_id],
+            unique: true,
+            name: 'index_ns_name_ft_pi'
 
   create_table 'flexi_model_collections_fields', :force => true, :id => false do |t|
     t.integer 'collection_id'
@@ -70,7 +73,6 @@ ActiveRecord::Schema.define(:version => 20120318055757) do
     t.datetime 'dt_value'
   end
 
-  add_index 'flexi_model_values', [:record_id]
-  add_index 'flexi_model_values', [:field_id]
+  add_index 'flexi_model_values', [:record_id, :field_id]
 
 end

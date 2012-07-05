@@ -26,6 +26,7 @@ module FlexiModel
       has_many :values, :dependent => :destroy
 
       validates_presence_of :name, :field_type
+      validates_uniqueness_of :name, :scope => [:namespace, :partition_id, :field_type]
 
       def value_column
         FlexiModel::ArModels::Field::COLUMNS_MAP[self.field_type.to_sym]

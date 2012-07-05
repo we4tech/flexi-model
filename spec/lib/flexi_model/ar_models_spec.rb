@@ -65,8 +65,8 @@ describe FlexiModel::ArModels do
       let!(:coll1) { FlexiModel::ArModels::Collection.create(name: 'products') }
       before {
         coll1.update_attribute :fields, [
-            FlexiModel::ArModels::Field.new(name: 'name', field_type: 'string'),
-            FlexiModel::ArModels::Field.new(name: 'email', field_type: 'email')
+            FlexiModel::ArModels::Field.find_or_create_by_name_and_field_type('name', 'string'),
+            FlexiModel::ArModels::Field.find_or_create_by_name_and_field_type('email', 'email')
         ]
       }
       subject { FlexiModel::ArModels::Collection.find_by_name('products') }
@@ -101,9 +101,9 @@ describe FlexiModel::ArModels do
     end
     before {
       products.update_attribute :fields, [
-          FlexiModel::ArModels::Field.new(name: 'name', field_type: 'string'),
-          FlexiModel::ArModels::Field.new(name: 'email', field_type: 'email'),
-          FlexiModel::ArModels::Field.new(name: 'position', field_type: 'integer')
+          FlexiModel::ArModels::Field.find_or_create_by_name_and_field_type('name', 'string'),
+          FlexiModel::ArModels::Field.find_or_create_by_name_and_field_type('email', 'email'),
+          FlexiModel::ArModels::Field.find_or_create_by_name_and_field_type('position', 'integer')
       ]
     }
 

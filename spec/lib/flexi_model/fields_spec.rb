@@ -245,7 +245,7 @@ describe FlexiModel::Fields do
     end
 
     it 'should have associated class' do
-      Cow.associated_classes[:cow_id].should == Cow
+      Cow.associated_classes[:cow_id].should == :Cow
     end
   end
 
@@ -281,6 +281,54 @@ describe FlexiModel::Fields do
       it 'should return value from default field' do
         Tiger2.create(email: 'abc@hola.com', name: 'Hola').reload._name.should == 'abc@hola.com'
       end
+    end
+  end
+
+  context 'fields without accessor' do
+    class AbcDef
+      include FlexiModel
+      _string :name
+      _attachment :file
+    end
+
+    it 'should have name only in flexi_fields' do
+      AbcDef.flexi_fields.map(&:name).should == [:name]
+    end
+
+    it 'should list file in none_flexi_field' do
+      AbcDef.none_flexi_fields.map(&:name).should == [:file]
+    end
+
+    it 'should generate accessors for name' do
+      AbcDef.instance_methods.include?(:name).should be
+      AbcDef.instance_methods.include?(:'name=').should be
+    end
+
+    it 'should not generate accessors for file' do
+      AbcDef.instance_methods.include?('file').should be_false
+      AbcDef.instance_methods.include?('file=').should be_false
+    end
+
+    class SomeThing
+      include FlexiModel
+      _string :name
+      _attachment :file
+
+      def file=(f)
+        @__f = f
+        puts "File - #{f}"
+      end
+
+      def file
+        @__f
+      end
+    end
+
+    it 'should initialize and save new record without any error' do
+      lambda {
+        inst = SomeThing.new(name: 'hasan', file: 'hola')
+        inst.save
+      }.should_not raise_error
     end
   end
 
