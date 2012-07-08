@@ -168,6 +168,8 @@ module FlexiModel
                    map { |_field| [_field.name.to_sym, _field] }]
     end
 
+    delegate :created_at, :updated_at, :to => :_get_record, :prefix => :flexi
+
     private
     def create_or_update
       _id.nil? ? create : update
