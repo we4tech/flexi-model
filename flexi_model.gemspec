@@ -9,9 +9,9 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["nhm tanveer hossain khan"]
-  s.date = "2012-06-18"
+  s.date = "2012-07-10"
   s.description = "Flexible Model"
-  s.email = ["hasan@somewherein.net"]
+  s.email = ["hasan83bd@gmail.com"]
   s.extra_rdoc_files = [
     "README.md"
   ]
@@ -26,9 +26,10 @@ Gem::Specification.new do |s|
     "lib/flexi_model/ar_persistence.rb",
     "lib/flexi_model/ar_queryable.rb",
     "lib/flexi_model/association.rb",
+    "lib/flexi_model/attachment_field.rb",
     "lib/flexi_model/callbacks.rb",
     "lib/flexi_model/fields.rb",
-    "lib/flexi_model/scope.rb",
+    "lib/flexi_model/filter.rb",
     "lib/flexi_model/stub_persistence.rb",
     "lib/flexi_model/validations.rb",
     "lib/generators/flexi_model/install/install_generator.rb",

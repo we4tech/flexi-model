@@ -21,7 +21,7 @@ begin
     gem.summary = "Build flexible database model with dynamic fields (right now based on ActiveRecord soon it will work with mongoid too)"
     gem.homepage = 'https://github.com/we4tech/flexi-model/'
     gem.description = 'Flexible Model'
-    gem.email   = ["hasan@somewherein.net"]
+    gem.email   = ["hasan83bd@gmail.com"]
     gem.authors = ["nhm tanveer hossain khan"]
     gem.files   = Dir["{lib}/**/*", "{spec}"]
   end
