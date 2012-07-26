@@ -1,11 +1,14 @@
 # A sample Gemfile
 source "https://rubygems.org"
 
-gem 'activesupport', '~> 3.2.6'
-gem 'jeweler'
+group :development do
+  gem 'jeweler'
+end
 
 group :test do
   # Test environment dependencies
+  gem 'activesupport', '~> 3.2.6'
+
   gem 'activerecord', '~> 3.2.6'
   gem 'activemodel', '~> 3.2.6'
   gem 'paperclip'
